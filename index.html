@@ -1,845 +1,505 @@
 <!DOCTYPE html>
 <html lang="my" class="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ShareHub — Telegram Mini App</title>
-    
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Google Fonts: Inter & Padauk -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'Padauk', 'Pyidaungsu', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        :root {
-            --bg-main: #f7f7f7;
-            --bg-card: #ffffff;
-            --text-main: #0a0a0a;
-            --text-muted: #666666;
-            --border-color: #e4e4e4;
-        }
-
-        html.dark {
-            --bg-main: #0a0a0a;
-            --bg-card: #141414;
-            --text-main: #f5f5f5;
-            --text-muted: #999999;
-            --border-color: #262626;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: 'Inter', 'Padauk', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .clean-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            transition: border-color 0.15s ease, transform 0.15s ease;
-        }
-
-        .clean-card:hover {
-            border-color: var(--text-main);
-        }
-
-        .line-clamp-1 {
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ShareHub — Telegram Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Inter', 'Padauk', 'sans-serif'] } } }
+    }
+  </script>
+  <style>
+    :root { --bg: #f7f7f7; --card: #ffffff; --text: #0a0a0a; --border: #e4e4e4; }
+    html.dark { --bg: #0a0a0a; --card: #141414; --text: #f5f5f5; --border: #262626; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', 'Padauk', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .clean-card { background: var(--card); border: 1px solid var(--border); transition: border-color 0.15s ease; }
+    .clean-card:hover { border-color: var(--text); }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black pb-24 md:pb-10">
+<body class="min-h-screen flex flex-col pb-24 md:pb-10">
 
-    <!-- ADAPTIVE HEADER -->
-    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/95 dark:bg-[#0a0a0a]/95 border-b border-neutral-200 dark:border-neutral-800">
-        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
-            
-            <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs tracking-tighter">
-                        SH
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-bold text-sm sm:text-base tracking-tight">ShareHub</h1>
-                        <!-- Real-time DB Status Pill -->
-                        <button onclick="fetchFromDatabase(false)" id="dbStatusBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 flex items-center gap-1.5 hover:border-black dark:hover:border-white transition" title="Click to Refresh from Supabase">
-                            <span id="dbStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                            <span id="dbStatusText">Connecting...</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Desktop Center Navigation Tabs -->
-                <nav class="hidden md:flex items-center gap-1 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 ml-4">
-                    <button onclick="switchTab('text')" id="dt-tab-text" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-black text-white dark:bg-white dark:text-black">
-                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                        <span>TextShare</span>
-                        <span id="dt-count-text" class="text-[10px] opacity-75">0</span>
-                    </button>
-                    <button onclick="switchTab('image')" id="dt-tab-image" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white">
-                        <i data-lucide="image" class="w-3.5 h-3.5"></i>
-                        <span>ImageShare</span>
-                        <span id="dt-count-image" class="text-[10px] opacity-75">0</span>
-                    </button>
-                    <button onclick="switchTab('link')" id="dt-tab-link" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white">
-                        <i data-lucide="link" class="w-3.5 h-3.5"></i>
-                        <span>LinkShare</span>
-                        <span id="dt-count-link" class="text-[10px] opacity-75">0</span>
-                    </button>
-                </nav>
-
-                <!-- Mobile Quick Actions -->
-                <div class="flex md:hidden items-center gap-1.5">
-                    <button onclick="fetchFromDatabase(false)" title="Sync Now" class="p-2 rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="toggleTheme()" title="White / Black UI" class="p-2 rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
-                        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
-                    </button>
-                    <button onclick="openItemModal()" class="px-3 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold flex items-center gap-1">
-                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                        <span>New</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right Group: Simple Search Bar + Desktop Actions -->
-            <div class="flex items-center gap-2 flex-1 md:max-w-md lg:max-w-lg justify-end">
-                <div class="relative flex-1">
-                    <i data-lucide="search" class="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        oninput="handleSearch()"
-                        placeholder="Search..." 
-                        class="w-full pl-9 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-transparent focus:border-black dark:focus:border-white focus:bg-white dark:focus:bg-[#141414] focus:outline-none transition"
-                    >
-                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white">
-                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                    </button>
-                </div>
-
-                <div class="hidden md:flex items-center gap-1.5 shrink-0">
-                    <button onclick="fetchFromDatabase(false)" title="Refresh from Supabase" class="p-2 rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-black dark:hover:border-white transition">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="toggleTheme()" title="Switch Theme" class="p-2 rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-black dark:hover:border-white transition">
-                        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
-                        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
-                    </button>
-                    <button onclick="openItemModal()" class="px-3.5 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 transition">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span>New</span>
-                    </button>
-                </div>
-            </div>
-
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 backdrop-blur-md bg-white/95 dark:bg-[#0a0a0a]/95 border-b border-neutral-200 dark:border-neutral-800">
+    <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs">SH</div>
+          <h1 class="font-bold text-sm sm:text-base">ShareHub</h1>
+          <button onclick="openKeyModal()" id="dbBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 flex items-center gap-1.5">
+            <span id="dbDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <span id="dbText">Connecting...</span>
+          </button>
         </div>
-    </header>
 
-    <!-- MAIN HIGH-DENSITY GRID CONTENT -->
-    <main class="max-w-7xl w-full mx-auto px-3 sm:px-5 py-3.5 flex-1">
-        <div id="itemsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3"></div>
+        <!-- Desktop Tabs -->
+        <nav class="hidden md:flex items-center gap-1 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 ml-3">
+          <button onclick="switchTab('text')" id="dt-text" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold">TextShare <span id="dc-text" class="opacity-70">0</span></button>
+          <button onclick="switchTab('image')" id="dt-image" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold">ImageShare <span id="dc-image" class="opacity-70">0</span></button>
+          <button onclick="switchTab('link')" id="dt-link" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold">LinkShare <span id="dc-link" class="opacity-70">0</span></button>
+        </nav>
 
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden py-20 text-center">
-            <div class="w-12 h-12 rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700 mx-auto flex items-center justify-center mb-3 text-neutral-400">
-                <i data-lucide="inbox" class="w-5 h-5"></i>
-            </div>
-            <p class="text-xs sm:text-sm font-medium text-neutral-500">မှတ်သားထားသော အချက်အလက် မရှိသေးပါ</p>
-            <button onclick="openItemModal()" class="mt-3 px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold inline-flex items-center gap-1.5">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i> အသစ်ထည့်မည်
-            </button>
+        <!-- Mobile Top Buttons -->
+        <div class="flex md:hidden items-center gap-1.5">
+          <button onclick="syncFromCloud(false)" class="px-2.5 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-800 text-xs font-bold" title="Refresh">↻</button>
+          <button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-800 text-xs">◐</button>
+          <button onclick="openModal()" class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold">+ New</button>
         </div>
-    </main>
+      </div>
 
-    <!-- MOBILE BOTTOM NAVIGATION BAR -->
-    <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md border-t border-neutral-200 dark:border-neutral-800 px-3 py-1.5">
-        <div class="grid grid-cols-3 gap-1.5 max-w-md mx-auto">
-            <button onclick="switchTab('text')" id="mb-tab-text" class="py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition bg-black text-white dark:bg-white dark:text-black">
-                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                <span>Text</span>
-                <span id="mb-count-text" class="text-[10px] opacity-75">0</span>
-            </button>
-            <button onclick="switchTab('image')" id="mb-tab-image" class="py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition text-neutral-500 dark:text-neutral-400">
-                <i data-lucide="image" class="w-3.5 h-3.5"></i>
-                <span>Image</span>
-                <span id="mb-count-image" class="text-[10px] opacity-75">0</span>
-            </button>
-            <button onclick="switchTab('link')" id="mb-tab-link" class="py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition text-neutral-500 dark:text-neutral-400">
-                <i data-lucide="link" class="w-3.5 h-3.5"></i>
-                <span>Link</span>
-                <span id="mb-count-link" class="text-[10px] opacity-75">0</span>
-            </button>
+      <!-- Search + Desktop Actions -->
+      <div class="flex items-center gap-2 flex-1 md:max-w-md justify-end">
+        <input id="searchInput" type="text" oninput="render()" placeholder="Search..." class="w-full px-3.5 py-1.5 text-xs sm:text-sm rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-transparent focus:border-black dark:focus:border-white focus:outline-none" />
+        <div class="hidden md:flex items-center gap-1.5 shrink-0">
+          <button onclick="syncFromCloud(false)" class="px-2.5 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-800 text-xs font-bold hover:border-black dark:hover:border-white" title="Sync Now">↻</button>
+          <button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-800 text-xs hover:border-black dark:hover:border-white">◐</button>
+          <button onclick="openModal()" class="px-3.5 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold">+ New</button>
         </div>
-    </nav>
-
-    <!-- ADD / EDIT MODAL -->
-    <div id="itemModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-neutral-800 w-full max-w-md rounded-2xl p-5 shadow-2xl">
-            <div class="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
-                <h2 id="modalTitle" class="font-bold text-sm sm:text-base">အသစ်ထည့်မည်</h2>
-                <button onclick="closeItemModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-
-            <form id="itemForm" onsubmit="saveItem(event)" class="space-y-3.5 mt-3.5">
-                <input type="hidden" id="editItemId">
-
-                <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900">
-                    <button type="button" onclick="setFormType('text')" id="formType-text" class="py-1.5 rounded-lg text-xs font-semibold bg-black text-white dark:bg-white dark:text-black">Text</button>
-                    <button type="button" onclick="setFormType('image')" id="formType-image" class="py-1.5 rounded-lg text-xs font-semibold text-neutral-500">Image</button>
-                    <button type="button" onclick="setFormType('link')" id="formType-link" class="py-1.5 rounded-lg text-xs font-semibold text-neutral-500">Link</button>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold mb-1">ခေါင်းစဉ် (Title)</label>
-                    <input type="text" id="itemTitle" required placeholder="ဥပမာ - Gold Logo Prompt" class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:border-black dark:focus:border-white">
-                </div>
-
-                <div id="fieldGroup-text">
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold">စာသား (Text / Prompt)</label>
-                        <button type="button" onclick="pasteToField('itemContent')" class="text-[11px] font-medium px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800">Paste</button>
-                    </div>
-                    <textarea id="itemContent" rows="5" placeholder="သိမ်းထားချင်သော စာသားကို ထည့်ပါ..." class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:border-black dark:focus:border-white"></textarea>
-                </div>
-
-                <div id="fieldGroup-image" class="hidden space-y-2.5">
-                    <label class="flex flex-col items-center justify-center w-full h-24 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-black dark:hover:border-white bg-neutral-50 dark:bg-neutral-900">
-                        <i data-lucide="upload" class="w-5 h-5 mb-1 text-neutral-400"></i>
-                        <span class="text-xs text-neutral-500">စက်ထဲမှ ပုံရွေးရန် နှိပ်ပါ</span>
-                        <input type="file" id="imageFileInput" accept="image/*" onchange="handleImageUpload(event)" class="hidden">
-                    </label>
-                    <input type="url" id="itemImageUrl" placeholder="သို့မဟုတ် Image URL ထည့်ပါ (https://...)" oninput="previewImageUrl(this.value)" class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:border-black dark:focus:border-white">
-                    <div id="imagePreviewWrapper" class="hidden relative rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-800 max-h-36 flex justify-center bg-neutral-100 dark:bg-neutral-900">
-                        <img id="imagePreviewEl" src="" alt="Preview" class="max-h-36 object-contain">
-                    </div>
-                </div>
-
-                <div id="fieldGroup-link" class="hidden">
-                    <label class="block text-xs font-semibold mb-1">Website Link (URL)</label>
-                    <input type="url" id="itemLinkUrl" placeholder="https://..." class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 focus:outline-none focus:border-black dark:focus:border-white">
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeItemModal()" class="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700">Cancel</button>
-                    <button type="submit" id="saveSubmitBtn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-black text-white dark:bg-white dark:text-black">Save to DB</button>
-                </div>
-            </form>
-        </div>
+      </div>
     </div>
+  </header>
 
-    <!-- FULL TEXT READER MODAL -->
-    <div id="textReaderModal" onclick="closeTextReader()" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-        <div onclick="event.stopPropagation()" class="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-neutral-800 w-full max-w-lg rounded-2xl p-5 shadow-2xl space-y-3">
-            <div class="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-2.5">
-                <h3 id="readerTitle" class="font-bold text-sm sm:text-base"></h3>
-                <button onclick="closeTextReader()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-            <div id="readerContent" class="p-3.5 rounded-xl bg-neutral-50 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-neutral-800 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto select-all"></div>
-            <div class="flex items-center justify-between pt-1">
-                <div class="flex items-center gap-1.5">
-                    <button id="readerEditBtn" class="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold flex items-center gap-1">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit
-                    </button>
-                    <button id="readerDeleteBtn" class="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
-                    </button>
+  <!-- ERROR BANNER (ONLY SHOWS IF SUPABASE BLOCKS REQUEST) -->
+  <div id="errBanner" class="hidden max-w-7xl w-full mx-auto px-3 sm:px-5 pt-2">
+    <div class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center justify-between">
+      <span id="errText">Database Notice</span>
+      <button onclick="openKeyModal()" class="underline font-semibold ml-2">Check Key</button>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <main class="max-w-7xl w-full mx-auto px-3 sm:px-5 py-3.5 flex-1">
+    <div id="gridContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3"></div>
+    <div id="emptyBox" class="hidden py-20 text-center text-xs text-neutral-400">
+      မှတ်သားထားသော အချက်အလက် မရှိသေးပါ
+    </div>
+  </main>
+
+  <!-- MOBILE BOTTOM TABS -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md border-t border-neutral-200 dark:border-neutral-800 px-3 py-1.5">
+    <div class="grid grid-cols-3 gap-1.5 max-w-md mx-auto">
+      <button onclick="switchTab('text')" id="mb-text" class="py-2 rounded-xl text-xs font-semibold">Text <span id="mc-text" class="opacity-70">0</span></button>
+      <button onclick="switchTab('image')" id="mb-image" class="py-2 rounded-xl text-xs font-semibold">Image <span id="mc-image" class="opacity-70">0</span></button>
+      <button onclick="switchTab('link')" id="mb-link" class="py-2 rounded-xl text-xs font-semibold">Link <span id="mc-link" class="opacity-70">0</span></button>
+    </div>
+  </nav>
+
+  <!-- ADD / EDIT MODAL -->
+  <div id="itemModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-neutral-800 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
+        <h2 id="modalTitle" class="font-bold text-sm">အသစ်ထည့်မည်</h2>
+        <button onclick="closeModal()" class="text-neutral-400 hover:text-black dark:hover:text-white">✕</button>
+      </div>
+      <form onsubmit="saveItem(event)" class="space-y-3 mt-3">
+        <input type="hidden" id="editId" />
+        <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs font-semibold">
+          <button type="button" onclick="setFormType('text')" id="ft-text" class="py-1.5 rounded-lg">Text</button>
+          <button type="button" onclick="setFormType('image')" id="ft-image" class="py-1.5 rounded-lg">Image</button>
+          <button type="button" onclick="setFormType('link')" id="ft-link" class="py-1.5 rounded-lg">Link</button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">ခေါင်းစဉ် (Title)</label>
+          <input id="inpTitle" type="text" required placeholder="ဥပမာ - Gold Logo Prompt" class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700" />
+        </div>
+        <div id="fg-text">
+          <label class="block text-xs font-semibold mb-1">စာသား (Text / Prompt)</label>
+          <textarea id="inpText" rows="4" placeholder="သိမ်းထားချင်သော စာသား..." class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700"></textarea>
+        </div>
+        <div id="fg-image" class="hidden space-y-2">
+          <label class="flex flex-col items-center justify-center w-full h-20 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer text-xs text-neutral-500">
+            <span>စက်ထဲမှ ပုံရွေးရန် နှိပ်ပါ</span>
+            <input type="file" accept="image/*" onchange="uploadImg(event)" class="hidden" />
+          </label>
+          <input id="inpImgUrl" type="url" placeholder="သို့မဟုတ် Image URL (https://...)" class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700" />
+        </div>
+        <div id="fg-link" class="hidden">
+          <label class="block text-xs font-semibold mb-1">Website Link (URL)</label>
+          <input id="inpLink" type="url" placeholder="https://..." class="w-full px-3 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700">Cancel</button>
+          <button type="submit" id="saveBtn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-black text-white dark:bg-white dark:text-black">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- READER MODAL -->
+  <div id="readerModal" onclick="closeReader()" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-neutral-800 w-full max-w-lg rounded-2xl p-5 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-2">
+        <h3 id="rTitle" class="font-bold text-sm"></h3>
+        <button onclick="closeReader()">✕</button>
+      </div>
+      <div id="rBody" class="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 text-xs sm:text-sm whitespace-pre-wrap max-h-[60vh] overflow-y-auto"></div>
+      <div class="flex justify-between pt-1">
+        <div class="flex gap-1.5">
+          <button id="rEdit" class="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold">Edit</button>
+          <button id="rDel" class="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold text-red-500">Delete</button>
+        </div>
+        <button id="rCopy" class="px-4 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black text-xs font-semibold">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY CONFIG MODAL -->
+  <div id="keyModal" class="fixed inset-0 z-50 hidden bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#141414] border border-neutral-200 dark:border-neutral-800 w-full max-w-md rounded-2xl p-5 space-y-3 text-xs">
+      <div class="flex justify-between items-center border-b border-neutral-200 dark:border-neutral-800 pb-2">
+        <h3 class="font-bold text-sm">Supabase Connection</h3>
+        <button onclick="document.getElementById('keyModal').classList.add('hidden')">✕</button>
+      </div>
+      <div>
+        <label class="font-semibold block mb-1">Project URL</label>
+        <input id="cfgUrl" type="url" class="w-full px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700" />
+      </div>
+      <div>
+        <label class="font-semibold block mb-1">Publishable / Anon Key</label>
+        <input id="cfgKey" type="text" class="w-full px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 font-mono" />
+      </div>
+      <div class="flex justify-between pt-2">
+        <button onclick="resetDefaultKey()" class="px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 font-semibold">Reset Default</button>
+        <button onclick="saveCustomKey()" class="px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black font-semibold">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all">
+    <div id="toastMsg" class="bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-xl shadow-lg text-xs font-semibold">Copied!</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://tmtqrkwpicvqdraqjutf.supabase.co';
+    const KEY_LIST = [
+      'sb_publishable_gq001WarHMvAJEmt4gX-kg_kL40tFoh',
+      'sb_publishable_gq001WarHMvAJEmt4gX-kg_kL4OtFoh',
+      'sb_publishable_gqOO1WarHMvAJEmt4gX-kg_kL4OtFoh',
+      'sb_publishable_gqOO1WarHMvAJEmt4gX-kg_kL40tFoh'
+    ];
+
+    const FALLBACK_ITEMS = [
+      { id: 't1', type: 'text', title: 'Sticker Design (Lemon)', content: 'ဒီ Logo ကို အသုံးပြုပြီးတော့ ပန်းကန်ဆေးဆပ်ပြာဘူးအတွက် Sticker Design လုပ်ပေးပါ။ lemon. Yellow theme.', created_at: 1730131920000 },
+      { id: 't2', type: 'text', title: 'Flat Vector Lettering Only', content: 'Give me Lettering Design Only. Black color. White bg. flat vector. No 3d, No stroke. Don\'t change Letter style.', created_at: 1730045640000 },
+      { id: 't3', type: 'text', title: 'Myanmar Girl Minimalist', content: 'Change Myanmar Girl Shape. Clean and Minimalist. Simple.', created_at: 1729777920000 },
+      { id: 't4', type: 'text', title: 'Bright Gradient Gold Color', content: 'Make Bright gradient gold color. Remove Background. High qulaity. Don\'t change Anything.', created_at: 1729619760000 },
+      { id: 't5', type: 'text', title: 'Remove BG & Make PNG', content: 'remove background. make PNG file. Don\'t change anyting.', created_at: 1729619340000 },
+      { id: 't6', type: 'text', title: 'Good Resolution & Remove BG', content: 'please make good resolution and remove background. Don\'t change anyting.', created_at: 1729618920000 },
+      { id: 't7', type: 'text', title: 'Cinematic Logo Mockup', content: 'Make Cinematic Logo Color Mockup Show.', created_at: 1729581480000 }
+    ];
+
+    let items = [...FALLBACK_ITEMS];
+    let activeTab = 'text';
+    let formType = 'text';
+    let uploadedImg = '';
+    let sbClient = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (window.Telegram && window.Telegram.WebApp) {
+        try { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); } catch (e) {}
+      }
+      if (localStorage.getItem('sh_theme') === 'dark') document.documentElement.classList.add('dark');
+
+      // 1. Render immediately so screen is NEVER blank
+      const cached = localStorage.getItem('sh_cache_items');
+      if (cached) {
+        try { const parsed = JSON.parse(cached); if (parsed.length) items = parsed; } catch (e) {}
+      }
+      switchTab('text');
+
+      // 2. Connect to Supabase via Official SDK
+      await initSupabase();
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') syncFromCloud(true);
+      });
+    });
+
+    async function initSupabase() {
+      const savedUrl = localStorage.getItem('sh_custom_url') || SUPABASE_URL;
+      const savedKey = localStorage.getItem('sh_custom_key');
+      const candidates = savedKey ? [savedKey, ...KEY_LIST] : KEY_LIST;
+
+      for (const key of candidates) {
+        try {
+          const client = window.supabase.createClient(savedUrl, key);
+          const { data, error } = await client
+            .from('share_hub_items')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!error && Array.isArray(data)) {
+            sbClient = client;
+            localStorage.setItem('sh_custom_key', key);
+            items = data;
+            localStorage.setItem('sh_cache_items', JSON.stringify(items));
+            setBadge(true, `Cloud (${items.length})`);
+            document.getElementById('errBanner').classList.add('hidden');
+            render();
+            return;
+          }
+        } catch (e) {}
+      }
+
+      setBadge(false, 'Key Error');
+      const banner = document.getElementById('errBanner');
+      document.getElementById('errText').textContent = 'Supabase Key မကိုက်ညီပါ — Check Key ကိုနှိပ်ပြီး Supabase မှ Publishable Key သို့မဟုတ် Legacy anon key ကို Paste ချပေးပါ။';
+      banner.classList.remove('hidden');
+    }
+
+    async function syncFromCloud(silent = false) {
+      if (!sbClient) { await initSupabase(); return; }
+      const { data, error } = await sbClient
+        .from('share_hub_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        items = data;
+        localStorage.setItem('sh_cache_items', JSON.stringify(items));
+        setBadge(true, `Cloud (${items.length})`);
+        render();
+        if (!silent) showToast(`Synced (${items.length}) ✓`);
+      }
+    }
+
+    function setBadge(ok, text) {
+      document.getElementById('dbDot').className = ok ? 'w-1.5 h-1.5 rounded-full bg-emerald-500' : 'w-1.5 h-1.5 rounded-full bg-red-500';
+      document.getElementById('dbText').textContent = text;
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      ['text', 'image', 'link'].forEach(t => {
+        const active = t === tab;
+        document.getElementById(`dt-${t}`).className = active
+          ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-black text-white dark:bg-white dark:text-black'
+          : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-500';
+        document.getElementById(`mb-${t}`).className = active
+          ? 'py-2 rounded-xl text-xs font-semibold bg-black text-white dark:bg-white dark:text-black'
+          : 'py-2 rounded-xl text-xs font-semibold text-neutral-500';
+      });
+      render();
+    }
+
+    function render() {
+      ['text', 'image', 'link'].forEach(t => {
+        const c = items.filter(i => i.type === t).length;
+        document.getElementById(`dc-${t}`).textContent = c;
+        document.getElementById(`mc-${t}`).textContent = c;
+      });
+
+      const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const list = items.filter(i => i.type === activeTab && (!q || (i.title || '').toLowerCase().includes(q) || (i.content || '').toLowerCase().includes(q)));
+
+      const grid = document.getElementById('gridContainer');
+      const empty = document.getElementById('emptyBox');
+      if (!list.length) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      grid.innerHTML = list.map(item => {
+        const id = esc(item.id);
+        const title = esc(item.title || 'Untitled');
+        const content = esc(item.content || '');
+        if (item.type === 'text') {
+          return `
+            <article class="clean-card rounded-2xl p-3 flex flex-col justify-between">
+              <div onclick="openReader('${id}')" class="cursor-pointer">
+                <h3 class="font-bold text-xs sm:text-sm line-clamp-1 mb-1">${title}</h3>
+                <p class="text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-3 break-words mb-3">${content}</p>
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                <div class="flex gap-2 text-xs text-neutral-400">
+                  <button onclick="openModal('${id}')" class="hover:text-black dark:hover:text-white">✎</button>
+                  <button onclick="delItem('${id}')" class="hover:text-red-500">🗑</button>
                 </div>
-                <button id="readerCopyBtn" class="bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Text
-                </button>
+                <button onclick="copyItem('${id}')" class="px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-[11px] font-semibold">Copy</button>
+              </div>
+            </article>`;
+        }
+        if (item.type === 'image') {
+          return `
+            <article class="clean-card rounded-2xl overflow-hidden flex flex-col justify-between">
+              <img src="${content}" class="aspect-square w-full object-cover bg-neutral-100 dark:bg-neutral-900" />
+              <div class="p-2.5 flex items-center justify-between">
+                <span class="font-bold text-xs truncate">${title}</span>
+                <button onclick="delItem('${id}')" class="text-xs text-neutral-400 hover:text-red-500">🗑</button>
+              </div>
+            </article>`;
+        }
+        return `
+          <article class="clean-card rounded-2xl p-3 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-xs sm:text-sm line-clamp-1 mb-1">${title}</h3>
+              <p class="text-[11px] text-neutral-400 truncate font-mono mb-3">${content}</p>
             </div>
-        </div>
-    </div>
+            <div class="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <button onclick="delItem('${id}')" class="text-xs text-neutral-400 hover:text-red-500">🗑</button>
+              <a href="${content}" target="_blank" class="px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-[11px] font-semibold">Open ↗</a>
+            </div>
+          </article>`;
+      }).join('');
+    }
 
-    <!-- IMAGE LIGHTBOX -->
-    <div id="lightboxModal" onclick="closeLightbox()" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-xs flex flex-col items-center justify-center p-4">
-        <button onclick="closeLightbox()" class="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white">
-            <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-        <img id="lightboxImg" src="" alt="Full View" class="max-w-full max-h-[80vh] object-contain rounded-xl" onclick="event.stopPropagation()">
-        <div class="mt-3 flex items-center gap-3" onclick="event.stopPropagation()">
-            <span id="lightboxTitle" class="text-white font-semibold text-xs sm:text-sm"></span>
-            <button id="lightboxDeleteBtn" class="px-2.5 py-1 rounded-lg bg-white/15 text-red-300 text-xs">Delete</button>
-        </div>
-    </div>
+    async function saveItem(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editId').value;
+      const title = document.getElementById('inpTitle').value.trim() || 'Untitled';
+      let content = '';
+      if (formType === 'text') content = document.getElementById('inpText').value.trim();
+      else if (formType === 'image') content = uploadedImg || document.getElementById('inpImgUrl').value.trim();
+      else content = document.getElementById('inpLink').value.trim();
+      if (!content) return;
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-200">
-        <div class="bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-1.5">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-            <span id="toastMsg">Copied!</span>
-        </div>
-    </div>
+      const record = {
+        id: editId || ('t' + Date.now()),
+        type: formType,
+        title,
+        content,
+        created_at: Date.now()
+      };
 
-    <script>
-        // ============================================================================
-        // DIRECT SUPABASE REST API ENGINE (100% RELIABLE, NO LOCAL-STORAGE CONFUSION)
-        // ============================================================================
-        const SUPABASE_URL = 'https://tmtqrkwpicvqdraqjutf.supabase.co';
-        
-        // Exact key from your screenshot (zeros '001' and '40t') + fallback variations
-        const KEY_CANDIDATES = [
-            'sb_publishable_gq001WarHMvAJEmt4gX-kg_kL40tFoh',
-            'sb_publishable_gq001WarHMvAJEmt4gX-kg_kL4OtFoh',
-            'sb_publishable_gqOO1WarHMvAJEmt4gX-kg_kL40tFoh',
-            'sb_publishable_gqOO1WarHMvAJEmt4gX-kg_kL4OtFoh'
-        ];
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
 
-        let workingKey = KEY_CANDIDATES[0];
-        let items = [];
-        let activeTab = 'text';
-        let searchQuery = '';
-        let formSelectedType = 'text';
-        let uploadedImageBase64 = '';
-
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Clear old cached broken keys from previous versions
-            localStorage.removeItem('sh_sb_key');
-            localStorage.removeItem('sh_sb_url');
-            localStorage.removeItem('sh_local_items_v3');
-
-            if (window.Telegram && window.Telegram.WebApp) {
-                try {
-                    window.Telegram.WebApp.ready();
-                    window.Telegram.WebApp.expand();
-                } catch (e) {}
-            }
-
-            const savedTheme = localStorage.getItem('sh_theme_v3') || 'light';
-            applyTheme(savedTheme);
-
-            await fetchFromDatabase(true);
-            lucide.createIcons();
-
-            // Auto-sync every time user switches back to the app on Phone or PC
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    fetchFromDatabase(true);
-                }
-            });
-        });
-
-        function getHeaders(key) {
-            return {
-                'apikey': key,
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation,resolution=merge-duplicates'
-            };
+      if (sbClient) {
+        const { error } = await sbClient.from('share_hub_items').upsert([record]);
+        if (error) {
+          alert('Supabase Error: ' + error.message);
+        } else {
+          await syncFromCloud(true);
+          showToast('Saved to Supabase ✓');
         }
+      } else {
+        items.unshift(record);
+        localStorage.setItem('sh_cache_items', JSON.stringify(items));
+        render();
+        showToast('Saved Locally');
+      }
 
-        // Fetch directly from Supabase share_hub_items table
-        async function fetchFromDatabase(silent = false) {
-            setStatusBadge('syncing', 'Syncing...');
-            for (const candidate of KEY_CANDIDATES) {
-                try {
-                    const res = await fetch(
-                        `${SUPABASE_URL}/rest/v1/share_hub_items?select=*&order=created_at.desc`,
-                        { method: 'GET', headers: getHeaders(candidate) }
-                    );
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      closeModal();
+      switchTab(formType);
+    }
 
-                    if (res.ok) {
-                        const data = await res.json();
-                        workingKey = candidate;
-                        items = Array.isArray(data) ? data : [];
-                        setStatusBadge('online', `DB: ${items.length} rows`);
-                        renderAll();
-                        if (!silent) showToast(`Synced (${items.length} items) ✓`);
-                        return true;
-                    }
-                } catch (err) {
-                    console.warn('Key check error:', err);
-                }
-            }
+    async function delItem(id) {
+      items = items.filter(i => String(i.id) !== String(id));
+      localStorage.setItem('sh_cache_items', JSON.stringify(items));
+      render();
+      if (sbClient) {
+        await sbClient.from('share_hub_items').delete().eq('id', id);
+        await syncFromCloud(true);
+      }
+      showToast('Deleted');
+    }
 
-            setStatusBadge('error', 'DB Key Error');
-            if (!silent) showToast('Database Connection Error');
-            return false;
-        }
+    function openModal(id = '') {
+      document.getElementById('editId').value = id;
+      uploadedImg = '';
+      if (id) {
+        const item = items.find(i => String(i.id) === String(id));
+        if (!item) return;
+        document.getElementById('inpTitle').value = item.title;
+        setFormType(item.type);
+        if (item.type === 'text') document.getElementById('inpText').value = item.content;
+        if (item.type === 'image') document.getElementById('inpImgUrl').value = item.content;
+        if (item.type === 'link') document.getElementById('inpLink').value = item.content;
+      } else {
+        document.getElementById('inpTitle').value = '';
+        document.getElementById('inpText').value = '';
+        document.getElementById('inpImgUrl').value = '';
+        document.getElementById('inpLink').value = '';
+        setFormType(activeTab);
+      }
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
 
-        function setStatusBadge(state, text) {
-            const dot = document.getElementById('dbStatusDot');
-            const label = document.getElementById('dbStatusText');
-            label.textContent = text;
-            if (state === 'online') {
-                dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
-            } else if (state === 'syncing') {
-                dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse';
-            } else {
-                dot.className = 'w-1.5 h-1.5 rounded-full bg-red-500';
-            }
-        }
+    function closeModal() { document.getElementById('itemModal').classList.add('hidden'); }
 
-        // ============================================================================
-        // SAVE & DELETE DIRECTLY TO SUPABASE TABLE
-        // ============================================================================
-        async function saveItem(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('saveSubmitBtn');
-            const editId = document.getElementById('editItemId').value;
-            const title = document.getElementById('itemTitle').value.trim();
-            let content = '';
+    function setFormType(t) {
+      formType = t;
+      ['text', 'image', 'link'].forEach(x => {
+        document.getElementById(`ft-${x}`).className = x === t ? 'py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black' : 'py-1.5 rounded-lg text-neutral-500';
+        document.getElementById(`fg-${x}`).classList.toggle('hidden', x !== t);
+      });
+    }
 
-            if (formSelectedType === 'text') {
-                content = document.getElementById('itemContent').value.trim();
-            } else if (formSelectedType === 'image') {
-                content = uploadedImageBase64 || document.getElementById('itemImageUrl').value.trim();
-            } else if (formSelectedType === 'link') {
-                content = document.getElementById('itemLinkUrl').value.trim();
-            }
+    function openReader(id) {
+      const item = items.find(i => String(i.id) === String(id));
+      if (!item) return;
+      document.getElementById('rTitle').textContent = item.title;
+      document.getElementById('rBody').textContent = item.content;
+      document.getElementById('rCopy').onclick = () => { copyItem(id); closeReader(); };
+      document.getElementById('rEdit').onclick = () => { closeReader(); openModal(id); };
+      document.getElementById('rDel').onclick = () => { closeReader(); delItem(id); };
+      document.getElementById('readerModal').classList.remove('hidden');
+    }
 
-            if (!content) {
-                showToast('အချက်အလက် ပြည့်စုံစွာ ထည့်သွင်းပါ');
-                return;
-            }
+    function closeReader() { document.getElementById('readerModal').classList.add('hidden'); }
 
-            const existing = items.find(i => String(i.id) === String(editId));
-            const record = {
-                id: editId || ('t' + Date.now()),
-                type: formSelectedType,
-                title: title || 'Untitled',
-                content: content,
-                created_at: existing ? existing.created_at : Date.now()
-            };
+    function openKeyModal() {
+      document.getElementById('cfgUrl').value = localStorage.getItem('sh_custom_url') || SUPABASE_URL;
+      document.getElementById('cfgKey').value = localStorage.getItem('sh_custom_key') || KEY_LIST[0];
+      document.getElementById('keyModal').classList.remove('hidden');
+    }
 
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
+    async function saveCustomKey() {
+      localStorage.setItem('sh_custom_url', document.getElementById('cfgUrl').value.trim());
+      localStorage.setItem('sh_custom_key', document.getElementById('cfgKey').value.trim());
+      document.getElementById('keyModal').classList.add('hidden');
+      await initSupabase();
+    }
 
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/share_hub_items`, {
-                    method: 'POST',
-                    headers: getHeaders(workingKey),
-                    body: JSON.stringify(record)
-                });
+    async function resetDefaultKey() {
+      localStorage.removeItem('sh_custom_url');
+      localStorage.removeItem('sh_custom_key');
+      document.getElementById('keyModal').classList.add('hidden');
+      await initSupabase();
+    }
 
-                if (!res.ok) {
-                    const errText = await res.text();
-                    throw new Error(errText);
-                }
+    function uploadImg(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => { uploadedImg = ev.target.result; };
+      r.readAsDataURL(f);
+    }
 
-                closeItemModal();
-                activeTab = formSelectedType;
-                await fetchFromDatabase(true);
-                switchTab(formSelectedType);
-                showToast('Saved to Supabase Table ✓');
-            } catch (err) {
-                console.error('Insert error:', err);
-                alert('Supabase Table ထဲသို့ သိမ်းဆည်းမရပါ: ' + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Save to DB';
-            }
-        }
+    function copyItem(id) {
+      const item = items.find(i => String(i.id) === String(id));
+      if (!item) return;
+      navigator.clipboard.writeText(item.content);
+      showToast('Copied!');
+    }
 
-        async function deleteItem(id) {
-            try {
-                const res = await fetch(
-                    `${SUPABASE_URL}/rest/v1/share_hub_items?id=eq.${encodeURIComponent(id)}`,
-                    { method: 'DELETE', headers: getHeaders(workingKey) }
-                );
-                if (!res.ok) throw new Error('Delete failed');
-                await fetchFromDatabase(true);
-                showToast('Deleted from DB ✓');
-            } catch (e) {
-                showToast('Delete Failed');
-            }
-        }
+    function toggleTheme() {
+      const d = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('sh_theme', d ? 'dark' : 'light');
+    }
 
-        // ============================================================================
-        // UI RENDERING & HELPERS
-        // ============================================================================
-        function applyTheme(theme) {
-            const htmlEl = document.documentElement;
-            if (theme === 'dark') {
-                htmlEl.classList.add('dark');
-                htmlEl.classList.remove('light');
-            } else {
-                htmlEl.classList.remove('dark');
-                htmlEl.classList.add('light');
-            }
-            localStorage.setItem('sh_theme_v3', theme);
-        }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.remove('opacity-0');
+      setTimeout(() => t.classList.add('opacity-0'), 1800);
+    }
 
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.contains('dark');
-            applyTheme(isDark ? 'light' : 'dark');
-        }
-
-        function renderAll() {
-            updateCounts();
-            renderGrid();
-            lucide.createIcons();
-        }
-
-        function updateCounts() {
-            const counts = {
-                text: items.filter(i => i.type === 'text').length,
-                image: items.filter(i => i.type === 'image').length,
-                link: items.filter(i => i.type === 'link').length
-            };
-            ['text', 'image', 'link'].forEach(t => {
-                const dt = document.getElementById(`dt-count-${t}`);
-                const mb = document.getElementById(`mb-count-${t}`);
-                if (dt) dt.textContent = counts[t];
-                if (mb) mb.textContent = counts[t];
-            });
-        }
-
-        function switchTab(tab) {
-            activeTab = tab;
-            ['text', 'image', 'link'].forEach(t => {
-                const dtBtn = document.getElementById(`dt-tab-${t}`);
-                const mbBtn = document.getElementById(`mb-tab-${t}`);
-                const isActive = t === tab;
-
-                if (dtBtn) {
-                    dtBtn.className = isActive
-                        ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-black text-white dark:bg-white dark:text-black'
-                        : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white';
-                }
-                if (mbBtn) {
-                    mbBtn.className = isActive
-                        ? 'py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition bg-black text-white dark:bg-white dark:text-black'
-                        : 'py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition text-neutral-500 dark:text-neutral-400';
-                }
-            });
-            renderAll();
-        }
-
-        function handleSearch() {
-            const val = document.getElementById('searchInput').value.trim().toLowerCase();
-            searchQuery = val;
-            document.getElementById('clearSearchBtn').classList.toggle('hidden', !val);
-            renderGrid();
-            lucide.createIcons();
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            searchQuery = '';
-            document.getElementById('clearSearchBtn').classList.add('hidden');
-            renderGrid();
-            lucide.createIcons();
-        }
-
-        function renderGrid() {
-            const container = document.getElementById('itemsContainer');
-            const emptyState = document.getElementById('emptyState');
-
-            let filtered = items.filter(i => i.type === activeTab);
-            if (searchQuery) {
-                filtered = filtered.filter(i =>
-                    (i.title || '').toLowerCase().includes(searchQuery) ||
-                    (i.content || '').toLowerCase().includes(searchQuery)
-                );
-            }
-
-            if (filtered.length === 0) {
-                container.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-
-            if (activeTab === 'image') {
-                container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3';
-                container.innerHTML = filtered.map(renderImageCard).join('');
-            } else if (activeTab === 'link') {
-                container.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3';
-                container.innerHTML = filtered.map(renderLinkCard).join('');
-            } else {
-                container.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3';
-                container.innerHTML = filtered.map(renderTextCard).join('');
-            }
-        }
-
-        function renderTextCard(item) {
-            return `
-                <article class="clean-card rounded-2xl p-3 flex flex-col justify-between h-full">
-                    <div onclick="openTextReader('${item.id}')" class="cursor-pointer">
-                        <div class="flex items-center justify-between gap-1 mb-1.5">
-                            <h3 class="font-bold text-xs sm:text-sm line-clamp-1">${escapeHtml(item.title || 'Untitled')}</h3>
-                        </div>
-                        <p class="text-[11px] sm:text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-3 break-words mb-3">${escapeHtml(item.content)}</p>
-                    </div>
-                    <div class="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
-                        <div class="flex items-center gap-1">
-                            <button onclick="openEditModal('${item.id}')" class="p-1 rounded-lg text-neutral-400 hover:text-black dark:hover:text-white" title="Edit">
-                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <button onclick="deleteItem('${item.id}')" class="p-1 rounded-lg text-neutral-400 hover:text-black dark:hover:text-white" title="Delete">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                        <button onclick="copyItem('${item.id}')" class="px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition">
-                            <i data-lucide="copy" class="w-3 h-3"></i>
-                            <span>Copy</span>
-                        </button>
-                    </div>
-                </article>
-            `;
-        }
-
-        function renderImageCard(item) {
-            return `
-                <article class="clean-card rounded-2xl overflow-hidden flex flex-col justify-between h-full">
-                    <div onclick="openLightbox('${item.id}')" class="cursor-pointer">
-                        <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
-                            <img src="${escapeHtml(item.content)}" alt="${escapeHtml(item.title)}" onerror="this.src='https://placehold.co/400x400/222222/ffffff?text=Image'" class="w-full h-full object-cover hover:scale-105 transition duration-300">
-                        </div>
-                        <div class="p-2.5">
-                            <h3 class="font-bold text-xs line-clamp-1">${escapeHtml(item.title || 'Image')}</h3>
-                        </div>
-                    </div>
-                    <div class="px-2.5 pb-2.5 flex items-center justify-between">
-                        <button onclick="deleteItem('${item.id}')" class="p-1 text-neutral-400 hover:text-black dark:hover:text-white">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                        <button onclick="openLightbox('${item.id}')" class="px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-[10px] font-semibold">
-                            View
-                        </button>
-                    </div>
-                </article>
-            `;
-        }
-
-        function renderLinkCard(item) {
-            return `
-                <article class="clean-card rounded-2xl p-3 flex flex-col justify-between h-full">
-                    <div>
-                        <h3 class="font-bold text-xs sm:text-sm line-clamp-1 mb-1">${escapeHtml(item.title || 'Link')}</h3>
-                        <p class="text-[11px] text-neutral-400 font-mono truncate mb-3">${escapeHtml(item.content)}</p>
-                    </div>
-                    <div class="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
-                        <div class="flex items-center gap-1">
-                            <button onclick="copyItem('${item.id}')" class="p-1 text-neutral-400 hover:text-black dark:hover:text-white" title="Copy URL">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <button onclick="deleteItem('${item.id}')" class="p-1 text-neutral-400 hover:text-black dark:hover:text-white" title="Delete">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                        <a href="${escapeHtml(item.content)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-black text-white dark:bg-white dark:text-black text-[11px] font-semibold flex items-center gap-1">
-                            <span>Open</span>
-                            <i data-lucide="external-link" class="w-3 h-3"></i>
-                        </a>
-                    </div>
-                </article>
-            `;
-        }
-
-        function openItemModal() {
-            document.getElementById('editItemId').value = '';
-            document.getElementById('modalTitle').textContent = 'အသစ်ထည့်မည်';
-            document.getElementById('itemTitle').value = '';
-            document.getElementById('itemContent').value = '';
-            document.getElementById('itemImageUrl').value = '';
-            document.getElementById('itemLinkUrl').value = '';
-            uploadedImageBase64 = '';
-            document.getElementById('imagePreviewWrapper').classList.add('hidden');
-            setFormType(activeTab);
-            document.getElementById('itemModal').classList.remove('hidden');
-        }
-
-        function openEditModal(id) {
-            const item = items.find(i => String(i.id) === String(id));
-            if (!item) return;
-
-            document.getElementById('editItemId').value = item.id;
-            document.getElementById('modalTitle').textContent = 'ပြင်ဆင်မည်';
-            document.getElementById('itemTitle').value = item.title || '';
-            setFormType(item.type);
-
-            if (item.type === 'text') {
-                document.getElementById('itemContent').value = item.content || '';
-            } else if (item.type === 'image') {
-                uploadedImageBase64 = item.content || '';
-                document.getElementById('itemImageUrl').value = item.content && !item.content.startsWith('data:') ? item.content : '';
-                previewImageUrl(item.content);
-            } else if (item.type === 'link') {
-                document.getElementById('itemLinkUrl').value = item.content || '';
-            }
-
-            document.getElementById('itemModal').classList.remove('hidden');
-        }
-
-        function closeItemModal() {
-            document.getElementById('itemModal').classList.add('hidden');
-        }
-
-        function setFormType(type) {
-            formSelectedType = type;
-            ['text', 'image', 'link'].forEach(t => {
-                const btn = document.getElementById(`formType-${t}`);
-                const group = document.getElementById(`fieldGroup-${t}`);
-                if (t === type) {
-                    btn.className = 'py-1.5 rounded-lg text-xs font-semibold bg-black text-white dark:bg-white dark:text-black';
-                    group.classList.remove('hidden');
-                } else {
-                    btn.className = 'py-1.5 rounded-lg text-xs font-semibold text-neutral-500';
-                    group.classList.add('hidden');
-                }
-            });
-        }
-
-        function openTextReader(id) {
-            const item = items.find(i => String(i.id) === String(id));
-            if (!item) return;
-            document.getElementById('readerTitle').textContent = item.title || '';
-            document.getElementById('readerContent').textContent = item.content || '';
-            document.getElementById('readerCopyBtn').onclick = () => {
-                copyToClipboard(item.content, 'Copied!');
-                closeTextReader();
-            };
-            document.getElementById('readerEditBtn').onclick = () => {
-                closeTextReader();
-                openEditModal(item.id);
-            };
-            document.getElementById('readerDeleteBtn').onclick = () => {
-                closeTextReader();
-                deleteItem(item.id);
-            };
-            document.getElementById('textReaderModal').classList.remove('hidden');
-        }
-
-        function closeTextReader() {
-            document.getElementById('textReaderModal').classList.add('hidden');
-        }
-
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const maxDim = 800;
-                    let w = img.width, h = img.height;
-                    if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
-                    else if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    uploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                    previewImageUrl(uploadedImageBase64);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function previewImageUrl(url) {
-            const wrap = document.getElementById('imagePreviewWrapper');
-            const img = document.getElementById('imagePreviewEl');
-            if (url) {
-                img.src = url;
-                wrap.classList.remove('hidden');
-            } else {
-                wrap.classList.add('hidden');
-            }
-        }
-
-        function openLightbox(id) {
-            const item = items.find(i => String(i.id) === String(id));
-            if (!item) return;
-            document.getElementById('lightboxImg').src = item.content;
-            document.getElementById('lightboxTitle').textContent = item.title || '';
-            document.getElementById('lightboxDeleteBtn').onclick = () => {
-                closeLightbox();
-                deleteItem(item.id);
-            };
-            document.getElementById('lightboxModal').classList.remove('hidden');
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightboxModal').classList.add('hidden');
-        }
-
-        function copyItem(id) {
-            const item = items.find(i => String(i.id) === String(id));
-            if (!item) return;
-            copyToClipboard(item.content, 'Copied!');
-        }
-
-        function copyToClipboard(text, msg = 'Copied!') {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            try { document.execCommand('copy'); showToast(msg); } catch (e) {}
-            document.body.removeChild(ta);
-        }
-
-        async function pasteToField(id) {
-            try {
-                const t = await navigator.clipboard.readText();
-                if (t) document.getElementById(id).value = t;
-            } catch (e) {}
-        }
-
-        let toastTimer;
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMsg').textContent = msg;
-            t.classList.remove('opacity-0');
-            t.classList.add('opacity-100');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                t.classList.remove('opacity-100');
-                t.classList.add('opacity-0');
-            }, 2000);
-        }
-
-        function escapeHtml(str) {
-            return String(str || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-    </script>
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+  </script>
 </body>
 </html>
